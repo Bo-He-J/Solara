@@ -4228,3 +4228,72 @@ function showNotification(message, type = "success") {
         notification.classList.remove("show");
     }, 3000);
 }
+
+// index.js 的入口保护逻辑（直接粘贴进你的入口脚本，或在现有入口处调用）
+(function() {
+  // 读取浏览器中的 cookie
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : null;
+  }
+
+  // 初始化 Solara 应用的对应函数，请替换为你实际的初始化调用
+  function initSolaraApp() {
+    if (typeof window.initializeSolara === 'function') {
+      window.initializeSolara();
+    } else if (typeof Solara !== 'undefined' && typeof Solara.init === 'function') {
+      Solara.init({ /* 你的初始化参数，如容器、数据源等 */ });
+    } else {
+      console.log('Solara 初始化入口未找到，请把实际初始化调用替换到这里');
+    }
+  }
+
+  // 简易登录模态框（未认证时显示）
+  function showLoginDialog() {
+    const overlay = document.createElement('div');
+    overlay.id = 'edge-auth-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.background = 'rgba(0,0,0,0.5)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.innerHTML = `
+      <div style="background:#fff; padding:20px; border-radius:8px; width:320px;">
+        <h3 style="margin:0 0 12px 0;">访问受保护内容需要认证</h3>
+        <input id="edgePwd" type="password" placeholder="请输入口令" style="width:100%; padding:10px;" />
+        <div id="edgePwdErr" style="color:red; display:none; margin-top:8px;">口令错误，请重试</div>
+        <button id="edgeLoginBtn" style="width:100%; padding:12px; margin-top:12px;">登录</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('edgeLoginBtn').addEventListener('click', async () => {
+      const pwd = document.getElementById('edgePwd').value;
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ password: pwd }).toString()
+        });
+        if (res.ok) {
+          document.body.removeChild(overlay);
+          initSolaraApp();
+        } else {
+          document.getElementById('edgePwdErr').style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('edgePwdErr').style.display = 'block';
+      }
+    });
+  }
+
+  // 主逻辑：如果已认证则初始化，否则显示登录
+  const auth = getCookie('solara_auth');
+  if (!auth) {
+    showLoginDialog();
+  } else {
+    initSolaraApp();
+  }
+})();
+
