@@ -123,6 +123,79 @@
         closeMobileSearchImpl();
         closeMobilePanelImpl();
     }
+// ========== 移动端认证弹窗增强 ==========
+
+function showMobileAuthDialog() {
+    // 移除已存在的弹窗，防止多次堆叠
+    let overlay = document.getElementById('mobile-auth-overlay');
+    if (overlay) overlay.remove();
+
+    // 创建全屏弹窗
+    overlay = document.createElement('div');
+    overlay.id = 'mobile-auth-overlay';
+    overlay.style.cssText = `
+        position:fixed;top:0;left:0;width:100vw;height:100vh;
+        background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;
+        z-index:99999;touch-action:none;
+    `;
+    overlay.innerHTML = `
+        <div style="width:94vw;max-width:420px;background:#fff;color:#222;border-radius:13px;padding:23px 12px;box-shadow:0 8px 42px rgba(0,0,0,.45);display:flex;flex-direction:column;">
+          <h3 style="margin-bottom:16px;">请输入访问口令</h3>
+          <input id="mobileAuthPwd" style="font-size:18px;padding:12px 10px;width:100%;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;" type="password" placeholder="口令" autocomplete="one-time-code" />
+          <div id="mobileAuthErr" style="color:#e53935;display:none;margin-bottom:6px;">口令错误，请重试</div>
+          <button id="mobileAuthBtn" style="padding:13px 0;border-radius:8px;background:#1677ff;color:#fff;font-size:18px;border:none;width:100%;">登录</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    // 禁止页面滚动
+    document.body.style.overflow = 'hidden';
+
+    // 焦点聚焦到输入框
+    setTimeout(() => {
+        const pwdInput = document.getElementById('mobileAuthPwd');
+        if (pwdInput) pwdInput.focus();
+    }, 32);
+
+    // 防止弹窗点击穿透
+    overlay.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    // 提交事件
+    async function handleSubmit() {
+        let password = document.getElementById('mobileAuthPwd').value;
+        let errTip = document.getElementById('mobileAuthErr');
+        errTip.style.display = 'none';
+        try {
+            let res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ password }).toString()
+            });
+            let data = await res.json();
+            if (res.ok && data.ok) {
+                overlay.remove();
+                document.body.style.overflow = '';
+                if (typeof initSolaraApp === 'function') initSolaraApp();
+            } else {
+                errTip.style.display = 'block';
+            }
+        } catch {
+            errTip.textContent = '网络错误，请重试';
+            errTip.style.display = 'block';
+        }
+    }
+
+    document.getElementById('mobileAuthBtn').onclick = handleSubmit;
+    document.getElementById('mobileAuthPwd').onkeydown = e => { if (e.key === 'Enter') handleSubmit(); };
+}
+
+// 检查认证状态，如果未认证就弹窗
+function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : null;
+}
+if (getCookie('solara_auth') !== 'yes') {
+    showMobileAuthDialog();
+}
 
     function initializeMobileUIImpl() {
         if (initialized || !document.body) {
