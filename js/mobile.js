@@ -1,88 +1,7 @@
 (function () {
-    if (!window.__SOLARA_IS_MOBILE) return;
-
-    // ========== 移动端认证弹窗增强 ==========
-    function showMobileAuthDialog() {
-        let overlay = document.getElementById('mobile-auth-overlay');
-        if (overlay) overlay.remove();
-        overlay = document.createElement('div');
-        overlay.id = 'mobile-auth-overlay';
-        overlay.style.cssText = `
-            position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;
-            background:rgba(0,0,0,.78);z-index:99999;touch-action:none;`;
-        overlay.innerHTML = `
-        <div style="
-            background:#fff;color:#222;border-radius:13px;padding:20px 14px;
-            box-shadow:0 8px 42px rgba(0,0,0,.45);max-width:360px;width:90vw;
-            display:flex;flex-direction:column;align-items:center;">
-        <h3 style="margin:10px 0 18px;font-size:1.1rem;">请输入访问口令</h3>
-        <input id="mobileAuthPwd" style="font-size:16px;padding:10px 6px;width:100%;border-radius:6px;border:1px solid #ccc;margin-bottom:12px;box-sizing:border-box;" type="password" placeholder="口令" autocomplete="one-time-code" />
-        <div id="mobileAuthErr" style="color:#e53935;display:none;font-size:14px;margin-bottom:8px;">口令错误，请重试</div>
-        <button id="mobileAuthBtn" style="padding:12px 0;border-radius:8px;background:#1677ff;color:#fff;font-size:16px;font-weight:500;border:none;width:100%;">登录</button>
-        </div>`;
-        document.body.appendChild(overlay);
-        document.body.style.overflow = 'hidden';
-
-        // 自动聚焦输入
-        setTimeout(() => {
-            const pwdInput = document.getElementById('mobileAuthPwd');
-            if (pwdInput) pwdInput.focus();
-        }, 32);
-
-        overlay.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-        async function handleSubmit() {
-            let password = document.getElementById('mobileAuthPwd').value;
-            let errTip = document.getElementById('mobileAuthErr');
-            errTip.style.display = 'none';
-            try {
-                let res = await fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ password }).toString()
-                });
-                let data = await res.json();
-                if (res.ok && data.ok) {
-                    overlay.remove();
-                    document.body.style.overflow = '';
-                    window.__SOLARA_AUTH_OK = true;
-                    if (typeof initSolaraApp === 'function') initSolaraApp();
-                } else {
-                    errTip.style.display = 'block';
-                }
-            } catch {
-                errTip.textContent = '网络错误，请重试';
-                errTip.style.display = 'block';
-            }
-        }
-        document.getElementById('mobileAuthBtn').onclick = handleSubmit;
-        document.getElementById('mobileAuthPwd').onkeydown = e => { if (e.key === 'Enter') handleSubmit(); };
-    }
-
-    // Cookie 判断工具
-    function getCookie(name) {
-        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-        return m ? m.pop() : null;
-    }
-
-    // 主应用初始化函数，按你实际定义替换
-    function initSolaraApp() {
-        if (typeof window.initializeSolara === 'function') {
-            window.initializeSolara();
-        } else if (typeof Solara !== 'undefined' && typeof Solara.init === 'function') {
-            Solara.init({ container: '#app-root' });
-        }
-    }
-
-    // ========== 唯一入口认证流程 ==========
-    if (!window.__SOLARA_AUTH_OK && getCookie('solara_auth') !== 'yes') {
-        showMobileAuthDialog();
+    if (!window.__SOLARA_IS_MOBILE) {
         return;
-    } else {
-        if (typeof initSolaraApp === 'function') initSolaraApp();
     }
-
-    // ================== 你的原有 mobile UI 初始化逻辑 ==================
 
     const bridge = window.SolaraMobileBridge || {};
     bridge.handlers = bridge.handlers || {};
@@ -93,46 +12,71 @@
     let initialized = false;
 
     function updateMobileToolbarTitleImpl() {
-        if (!dom.mobileToolbarTitle) return;
+        if (!dom.mobileToolbarTitle) {
+            return;
+        }
         dom.mobileToolbarTitle.textContent = "Solara";
     }
 
     function updateMobileOverlayScrim() {
-        if (!dom.mobileOverlayScrim || !document.body) return;
+        if (!dom.mobileOverlayScrim || !document.body) {
+            return;
+        }
         const hasOverlay = document.body.classList.contains("mobile-search-open") ||
             document.body.classList.contains("mobile-panel-open");
         dom.mobileOverlayScrim.setAttribute("aria-hidden", hasOverlay ? "false" : "true");
     }
 
     function openMobileSearchImpl() {
-        if (!document.body) return;
+        if (!document.body) {
+            return;
+        }
         document.body.classList.add("mobile-search-open");
         document.body.classList.remove("mobile-panel-open");
-        if (dom.searchArea) dom.searchArea.setAttribute("aria-hidden", "false");
+        if (dom.searchArea) {
+            dom.searchArea.setAttribute("aria-hidden", "false");
+        }
         updateMobileOverlayScrim();
         if (dom.searchInput) {
             window.requestAnimationFrame(() => {
-                try { dom.searchInput.focus({ preventScroll: true }); }
-                catch (error) { dom.searchInput.focus(); }
+                try {
+                    dom.searchInput.focus({ preventScroll: true });
+                } catch (error) {
+                    dom.searchInput.focus();
+                }
             });
         }
     }
 
     function closeMobileSearchImpl() {
-        if (!document.body) return;
+        if (!document.body) {
+            return;
+        }
         document.body.classList.remove("mobile-search-open");
         const toggleSearchMode = window.toggleSearchMode;
-        if (typeof toggleSearchMode === "function") toggleSearchMode(false);
-        else if (typeof window.hideSearchResults === "function") window.hideSearchResults();
-        if (dom.searchArea) dom.searchArea.setAttribute("aria-hidden", "true");
-        if (dom.searchInput) dom.searchInput.blur();
+        if (typeof toggleSearchMode === "function") {
+            toggleSearchMode(false);
+        } else if (typeof window.hideSearchResults === "function") {
+            window.hideSearchResults();
+        }
+        if (dom.searchArea) {
+            dom.searchArea.setAttribute("aria-hidden", "true");
+        }
+        if (dom.searchInput) {
+            dom.searchInput.blur();
+        }
         updateMobileOverlayScrim();
     }
 
     function toggleMobileSearchImpl() {
-        if (!document.body) return;
-        if (document.body.classList.contains("mobile-search-open")) closeMobileSearchImpl();
-        else openMobileSearchImpl();
+        if (!document.body) {
+            return;
+        }
+        if (document.body.classList.contains("mobile-search-open")) {
+            closeMobileSearchImpl();
+        } else {
+            openMobileSearchImpl();
+        }
     }
 
     function normalizePanelView(view) {
@@ -140,9 +84,13 @@
     }
 
     function openMobilePanelImpl(view = "playlist") {
-        if (!document.body) return;
+        if (!document.body) {
+            return;
+        }
         const targetView = normalizePanelView(view);
-        if (typeof window.switchMobileView === "function") window.switchMobileView(targetView);
+        if (typeof window.switchMobileView === "function") {
+            window.switchMobileView(targetView);
+        }
         closeMobileSearchImpl();
         document.body.classList.add("mobile-panel-open");
         document.body.setAttribute("data-mobile-panel-view", targetView);
@@ -150,18 +98,25 @@
     }
 
     function closeMobilePanelImpl() {
-        if (!document.body) return;
+        if (!document.body) {
+            return;
+        }
         document.body.classList.remove("mobile-panel-open");
         updateMobileOverlayScrim();
     }
 
     function toggleMobilePanelImpl(view = "playlist") {
-        if (!document.body) return;
+        if (!document.body) {
+            return;
+        }
         const isOpen = document.body.classList.contains("mobile-panel-open");
         const currentView = document.body.getAttribute("data-mobile-panel-view") || "playlist";
         const targetView = normalizePanelView(view);
-        if (isOpen && (!targetView || currentView === targetView)) closeMobilePanelImpl();
-        else openMobilePanelImpl(targetView || currentView || "playlist");
+        if (isOpen && (!targetView || currentView === targetView)) {
+            closeMobilePanelImpl();
+        } else {
+            openMobilePanelImpl(targetView || currentView || "playlist");
+        }
     }
 
     function closeAllMobileOverlaysImpl() {
@@ -170,38 +125,73 @@
     }
 
     function initializeMobileUIImpl() {
-        if (initialized || !document.body) return;
+        if (initialized || !document.body) {
+            return;
+        }
         initialized = true;
 
         document.body.classList.add("mobile-view");
         const initialView = "playlist";
         document.body.setAttribute("data-mobile-panel-view", initialView);
-        if (dom.mobilePanelTitle) dom.mobilePanelTitle.textContent = "播放列表";
-        if (dom.lyrics) dom.lyrics.classList.remove("active");
-        if (dom.playlist) dom.playlist.classList.add("active");
+        if (dom.mobilePanelTitle) {
+            dom.mobilePanelTitle.textContent = "播放列表";
+        }
+        if (dom.lyrics) {
+            dom.lyrics.classList.remove("active");
+        }
+        if (dom.playlist) {
+            dom.playlist.classList.add("active");
+        }
 
         updateMobileToolbarTitleImpl();
 
-        if (dom.mobileSearchToggle) dom.mobileSearchToggle.addEventListener("click", toggleMobileSearchImpl);
-        if (dom.mobileSearchClose) dom.mobileSearchClose.addEventListener("click", closeMobileSearchImpl);
-        if (dom.mobilePanelClose) dom.mobilePanelClose.addEventListener("click", closeMobilePanelImpl);
-        if (dom.mobileQueueToggle) dom.mobileQueueToggle.addEventListener("click", () => openMobilePanelImpl("playlist"));
+        if (dom.mobileSearchToggle) {
+            dom.mobileSearchToggle.addEventListener("click", toggleMobileSearchImpl);
+        }
+        if (dom.mobileSearchClose) {
+            dom.mobileSearchClose.addEventListener("click", closeMobileSearchImpl);
+        }
+        if (dom.mobilePanelClose) {
+            dom.mobilePanelClose.addEventListener("click", closeMobilePanelImpl);
+        }
+        if (dom.mobileQueueToggle) {
+            dom.mobileQueueToggle.addEventListener("click", () => openMobilePanelImpl("playlist"));
+        }
         const handleGlobalPointerDown = (event) => {
-            if (!document.body) return;
+            if (!document.body) {
+                return;
+            }
             const hasOverlay = document.body.classList.contains("mobile-search-open") ||
                 document.body.classList.contains("mobile-panel-open");
-            if (!hasOverlay) return;
+            if (!hasOverlay) {
+                return;
+            }
 
             const target = event.target;
-            if (dom.mobilePanel && (dom.mobilePanel === target || dom.mobilePanel.contains(target))) return;
-            if (dom.searchArea && (dom.searchArea === target || dom.searchArea.contains(target))) return;
-            if (dom.playerQualityMenu && dom.playerQualityMenu.contains(target)) return;
-            if (target && typeof target.closest === "function" && target.closest(".quality-menu")) return;
+            if (dom.mobilePanel && (dom.mobilePanel === target || dom.mobilePanel.contains(target))) {
+                return;
+            }
+            if (dom.searchArea && (dom.searchArea === target || dom.searchArea.contains(target))) {
+                return;
+            }
+            if (dom.playerQualityMenu && dom.playerQualityMenu.contains(target)) {
+                return;
+            }
+            if (target && typeof target.closest === "function" && target.closest(".quality-menu")) {
+                return;
+            }
+
             closeAllMobileOverlaysImpl();
         };
+
         document.addEventListener("pointerdown", handleGlobalPointerDown, true);
-        if (dom.searchArea) dom.searchArea.setAttribute("aria-hidden", "true");
-        if (dom.mobileOverlayScrim) dom.mobileOverlayScrim.setAttribute("aria-hidden", "true");
+        if (dom.searchArea) {
+            dom.searchArea.setAttribute("aria-hidden", "true");
+        }
+        if (dom.mobileOverlayScrim) {
+            dom.mobileOverlayScrim.setAttribute("aria-hidden", "true");
+        }
+
         updateMobileOverlayScrim();
     }
 
@@ -219,7 +209,9 @@
         const pending = bridge.queue.splice(0, bridge.queue.length);
         for (const entry of pending) {
             const handler = bridge.handlers[entry.name];
-            if (typeof handler === "function") handler(...(entry.args || []));
+            if (typeof handler === "function") {
+                handler(...(entry.args || []));
+            }
         }
     }
 })();
